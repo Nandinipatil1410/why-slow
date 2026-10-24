@@ -25,13 +25,13 @@ class ProcessSample:
     name: str
     cpu_percent: float  # psutil style: 100 = one full core
     ram_bytes: int
-    disk_bytes_per_s: float
+    io_bytes_per_s: float
 
 
 def group_by_app(samples: list[ProcessSample], cpu_count: int, per_resource: int) -> list[AppUsage]:
     """Add up processes with the same name, then keep the heaviest apps.
 
-    We keep the top `per_resource` apps by CPU, by RAM and by disk, merged,
+    We keep the top `per_resource` apps by CPU, by RAM and by I/O, merged,
     so each kind of hog gets caught.
     """
     totals: dict[str, AppUsage] = {}
@@ -39,11 +39,11 @@ def group_by_app(samples: list[ProcessSample], cpu_count: int, per_resource: int
         app = totals.setdefault(s.name, AppUsage(s.name, 0.0, 0.0, 0.0))
         app.cpu_percent += s.cpu_percent / cpu_count  # turn "% of one core" into "% of the machine"
         app.ram_mb += s.ram_bytes / MB
-        app.disk_mb_s += s.disk_bytes_per_s / MB
+        app.io_mb_s += s.io_bytes_per_s / MB
 
     apps = list(totals.values())
     keep: dict[str, AppUsage] = {}
-    for key in (lambda a: a.cpu_percent, lambda a: a.ram_mb, lambda a: a.disk_mb_s):
+    for key in (lambda a: a.cpu_percent, lambda a: a.ram_mb, lambda a: a.io_mb_s):
         for app in sorted(apps, key=key, reverse=True)[:per_resource]:
             if key(app) > 0:
                 keep[app.name] = app

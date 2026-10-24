@@ -18,7 +18,10 @@ class AppUsage:
     name: str
     cpu_percent: float  # share of the whole machine, 0-100
     ram_mb: float
-    disk_mb_s: float  # read + write
+    # Reads + writes, MB/s. On Windows this also counts reads served from memory
+    # cache, so it can be far above what the disk really did. Treat it as
+    # "I/O activity", and trust it only when the laptop's disk is busy too.
+    io_mb_s: float
 
 
 @dataclass

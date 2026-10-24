@@ -147,3 +147,19 @@ def test_full_disk():
     e = explain(store, at=T + 60)
     assert e.cause == "disk_full"
     assert "96% full" in e.action
+
+
+def test_cached_io_is_not_blamed_when_disk_was_idle():
+    # Windows counts cached reads as app I/O. If the disk itself barely moved,
+    # the app's big I/O number can't be the reason the disk was slow.
+    store = Store(":memory:")
+    indexer = AppUsage("SearchIndexer.exe", 3, 80, 90.0)
+    store.save(
+        [
+            make_snap(float(ts), disk_latency_ms=80 if ts >= T else 3, disk_read_mb_s=0.1, disk_write_mb_s=0.1,
+                      apps=[indexer] if ts >= T else [])
+            for ts in range(int(T - 300), int(T + 300), 5)
+        ]
+    )
+    e = explain(store, at=T + 60)
+    assert e.cause == "slow_disk" and e.culprit is None

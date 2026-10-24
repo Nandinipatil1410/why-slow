@@ -56,7 +56,7 @@ def main() -> None:
     elif args.command == "web":
         from .web import serve
 
-        server = serve(args.port, config)
+        server = serve(args.port, config, demo=args.demo)
         url = f"http://127.0.0.1:{args.port}"
         print(f"Open {url} (Ctrl+C to stop)")
         webbrowser.open(url)

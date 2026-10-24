@@ -51,7 +51,7 @@ def amount(metric: str, value: float) -> str:
         return size(value)
     if metric == "cpu_percent":
         return f"{value:.0f}% of the CPU"
-    return f"{value:.0f} MB/s of disk"
+    return f"{value:.0f} MB/s of reads and writes"
 
 
 @dataclass
@@ -105,7 +105,7 @@ def waiting_sentence(ep: Episode, during) -> str | None:
 
 
 def culprit_sentence(s: Suspect, metric: str) -> str:
-    if s.normal < {"ram_mb": 50, "cpu_percent": 1, "disk_mb_s": 1}[metric]:
+    if s.normal < {"ram_mb": 50, "cpu_percent": 1, "io_mb_s": 1}[metric]:
         usual = "when it's normally almost idle" if s.baseline == "history" else "after being almost idle just before"
     elif s.baseline == "history":
         usual = f"when it normally uses about {amount(metric, s.normal)}"

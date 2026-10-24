@@ -36,10 +36,12 @@
          padding: 10px 12px; border-radius: 6px; margin-top: 14px; }
   .feedback { margin-top: 14px; color: var(--muted); font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .empty { color: var(--muted); }
+  .demo { background: var(--warn); color: #1d1d1b; border-radius: 8px; padding: 8px 12px; margin-bottom: 16px; font-size: 14px; }
 </style>
 </head>
 <body>
 <main>
+  <div id="demo" class="demo" hidden>Demo data: a made-up day with three planted slowdowns. Run without --demo to see your own laptop.</div>
   <h1>Why is my laptop slow?</h1>
   <p class="sub">Click a slow moment on the timeline to see what caused it.</p>
 
@@ -161,6 +163,7 @@ function feedbackRow(e) {
   return row;
 }
 
+fetch("/api/info").then(r => r.json()).then(info => { document.getElementById("demo").hidden = !info.demo; });
 loadTimeline();
 setInterval(loadTimeline, 60000);
 </script>

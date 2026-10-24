@@ -23,15 +23,18 @@ from ..models import Snapshot
 DAY = 86400
 
 # Which per-app number matters for each kind of waiting.
-METRIC = {"memory": "ram_mb", "cpu": "cpu_percent", "disk": "disk_mb_s", "frozen": "cpu_percent"}
-HOURLY_COLUMN = {"ram_mb": "ram_avg", "cpu_percent": "cpu_avg", "disk_mb_s": "disk_avg"}
+METRIC = {"memory": "ram_mb", "cpu": "cpu_percent", "disk": "io_mb_s", "frozen": "cpu_percent"}
+HOURLY_COLUMN = {"ram_mb": "ram_avg", "cpu_percent": "cpu_avg", "io_mb_s": "io_avg"}
 # The smallest "normal spread" we allow, so a perfectly steady app isn't
 # flagged as hugely surprising over a tiny change.
-MIN_SPREAD = {"ram_mb": 100.0, "cpu_percent": 5.0, "disk_mb_s": 2.0}
+MIN_SPREAD = {"ram_mb": 100.0, "cpu_percent": 5.0, "io_mb_s": 2.0}
 # Below these, the laptop feels fine (used by the what-if).
 COMFORTABLE = {"ram_mb": 80.0, "cpu_percent": 70.0}
 
 MIN_BASELINE_HOURS = 12  # cold start: fewer hours than this, use the minutes before instead
+# Per-app I/O includes cached reads that never touch the disk (see models.py),
+# so we only blame an app for a disk slowdown if the disk itself was busy.
+MIN_DISK_MB_S = 1.0
 
 
 @dataclass
@@ -82,6 +85,10 @@ def history_baseline(store, name: str, metric: str, before: float) -> tuple[floa
 
 def find_suspects(store, during: list[Snapshot], before: list[Snapshot], resource: str) -> list[Suspect]:
     metric = METRIC[resource]
+    if resource == "disk":
+        disk_mb_s = sum(s.disk_read_mb_s + s.disk_write_mb_s for s in during) / len(during)
+        if disk_mb_s < MIN_DISK_MB_S:
+            return []  # the disk was slow but barely used: no app to blame
     now_levels = app_levels(during, metric)
     before_levels = app_levels(before, metric)
     start = during[0].ts

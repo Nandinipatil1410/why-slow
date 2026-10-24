@@ -9,9 +9,9 @@ Disk = namedtuple("Disk", "read_count write_count read_time write_time")
 
 def test_processes_with_same_name_are_added_up():
     samples = [
-        ProcessSample("chrome", cpu_percent=100, ram_bytes=500 * 1024 * 1024, disk_bytes_per_s=0),
-        ProcessSample("chrome", cpu_percent=100, ram_bytes=500 * 1024 * 1024, disk_bytes_per_s=0),
-        ProcessSample("code", cpu_percent=50, ram_bytes=200 * 1024 * 1024, disk_bytes_per_s=0),
+        ProcessSample("chrome", cpu_percent=100, ram_bytes=500 * 1024 * 1024, io_bytes_per_s=0),
+        ProcessSample("chrome", cpu_percent=100, ram_bytes=500 * 1024 * 1024, io_bytes_per_s=0),
+        ProcessSample("code", cpu_percent=50, ram_bytes=200 * 1024 * 1024, io_bytes_per_s=0),
     ]
     apps = group_by_app(samples, cpu_count=4, per_resource=5)
     chrome = next(a for a in apps if a.name == "chrome")
@@ -20,14 +20,14 @@ def test_processes_with_same_name_are_added_up():
 
 
 def test_a_disk_hog_is_kept_even_with_low_cpu():
-    samples = [ProcessSample(f"busy{i}", cpu_percent=90 - i, ram_bytes=0, disk_bytes_per_s=0) for i in range(5)]
-    samples.append(ProcessSample("backup", cpu_percent=1, ram_bytes=0, disk_bytes_per_s=50 * 1024 * 1024))
+    samples = [ProcessSample(f"busy{i}", cpu_percent=90 - i, ram_bytes=0, io_bytes_per_s=0) for i in range(5)]
+    samples.append(ProcessSample("backup", cpu_percent=1, ram_bytes=0, io_bytes_per_s=50 * 1024 * 1024))
     names = {a.name for a in group_by_app(samples, cpu_count=1, per_resource=5)}
     assert "backup" in names
 
 
 def test_idle_apps_are_dropped():
-    samples = [ProcessSample("sleepy", cpu_percent=0, ram_bytes=0, disk_bytes_per_s=0)]
+    samples = [ProcessSample("sleepy", cpu_percent=0, ram_bytes=0, io_bytes_per_s=0)]
     assert group_by_app(samples, cpu_count=1, per_resource=5) == []
 
 

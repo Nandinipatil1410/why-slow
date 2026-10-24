@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS app_usage (
     name TEXT NOT NULL,
     cpu_percent REAL,
     ram_mb REAL,
-    disk_mb_s REAL,
+    io_mb_s REAL,
     PRIMARY KEY (ts, name)
 ) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS app_usage_by_name ON app_usage (name, ts);
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS hourly_apps (
     samples INTEGER,
     cpu_avg REAL, cpu_max REAL,
     ram_avg REAL, ram_max REAL,
-    disk_avg REAL, disk_max REAL,
+    io_avg REAL, io_max REAL,
     PRIMARY KEY (hour_ts, name)
 ) WITHOUT ROWID;
 
@@ -101,7 +101,7 @@ class Store:
             )
             self.db.executemany(
                 "INSERT OR REPLACE INTO app_usage VALUES (?, ?, ?, ?, ?)",
-                [(s.ts, a.name, a.cpu_percent, a.ram_mb, a.disk_mb_s) for s in snapshots for a in s.apps],
+                [(s.ts, a.name, a.cpu_percent, a.ram_mb, a.io_mb_s) for s in snapshots for a in s.apps],
             )
 
     def snapshots_between(self, start: float, end: float, with_apps: bool = True) -> list[Snapshot]:
@@ -117,7 +117,7 @@ class Store:
         if not with_apps:
             return list(snaps.values())
         for ts, name, cpu, ram, disk in self.db.execute(
-            "SELECT ts, name, cpu_percent, ram_mb, disk_mb_s FROM app_usage WHERE ts >= ? AND ts < ?", (start, end)
+            "SELECT ts, name, cpu_percent, ram_mb, io_mb_s FROM app_usage WHERE ts >= ? AND ts < ?", (start, end)
         ):
             if ts in snaps:
                 snaps[ts].apps.append(AppUsage(name, cpu, ram, disk))
@@ -145,7 +145,7 @@ class Store:
                 f"""INSERT OR IGNORE INTO hourly_apps
                     SELECT CAST(ts / {HOUR} AS INTEGER) * {HOUR} AS h, name, COUNT(*),
                            AVG(cpu_percent), MAX(cpu_percent), AVG(ram_mb), MAX(ram_mb),
-                           AVG(disk_mb_s), MAX(disk_mb_s)
+                           AVG(io_mb_s), MAX(io_mb_s)
                     FROM app_usage
                     WHERE ts < ? AND ts >= (SELECT COALESCE(MAX(hour_ts) + {HOUR}, 0) FROM hourly_apps)
                     GROUP BY h, name""",

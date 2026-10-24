@@ -4,6 +4,7 @@ Uses only Python's built-in web server, so there's nothing extra to install.
 It listens on 127.0.0.1 only, so nothing on your network can see it.
 
     GET  /                       the page
+    GET  /api/info               is this demo data?
     GET  /api/timeline?hours=24  slowness score per minute
     GET  /api/explain?at=<ts>    explanation for a moment (no `at` = worst in the last hour)
     POST /api/feedback           👍/👎 on an explanation
@@ -46,6 +47,7 @@ def timeline(store: Store, hours: float, now: float) -> list[dict]:
 
 class Handler(BaseHTTPRequestHandler):
     config = Config()
+    demo = False
 
     def do_GET(self):
         url = urlparse(self.path)
@@ -53,6 +55,8 @@ class Handler(BaseHTTPRequestHandler):
         if url.path == "/":
             page = resources.files("whyslow").joinpath("static/index.html").read_bytes()
             return self._send(200, page, "text/html; charset=utf-8")
+        if url.path == "/api/info":
+            return self._json({"demo": self.demo})
         if url.path == "/api/timeline":
             hours = min(float(query.get("hours", ["24"])[0]), 24 * 7)
             with self._store() as store:
@@ -97,7 +101,8 @@ class Handler(BaseHTTPRequestHandler):
         pass  # keep the terminal quiet
 
 
-def serve(port: int = 8765, config: Config | None = None) -> ThreadingHTTPServer:
+def serve(port: int = 8765, config: Config | None = None, demo: bool = False) -> ThreadingHTTPServer:
     if config:
         Handler.config = config
+    Handler.demo = demo
     return ThreadingHTTPServer(("127.0.0.1", port), Handler)
