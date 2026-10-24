@@ -2,12 +2,10 @@
 
 Tells you **why your laptop was slow**, in plain words, and what to do about it.
 
-It quietly records how your laptop is doing every 5 seconds. Later you pick a slow
-moment on a timeline and it explains what happened, for example:
+It quietly records how your laptop is doing every 5 seconds. Later you click a slow
+moment on a timeline and it explains what happened:
 
-> Your laptop was slow from 2:41 to 3:05 pm. Programs were stuck waiting for memory
-> 38% of the time (normally 2%). Chrome grew to 3.1 GB, 1.9 GB above its usual...
-> **Try:** close the Chrome tabs you're not using.
+![The timeline page explaining a Chrome memory slowdown](docs/screenshot.png)
 
 Runs on Windows and Ubuntu, fully offline. Nothing leaves your laptop, and there's no AI model inside.
 
@@ -17,8 +15,10 @@ Runs on Windows and Ubuntu, fully offline. Nothing leaves your laptop, and there
 | --- | --- |
 | Collector (snapshots every 5 s) | done |
 | Storage (SQLite, 7 days detail + 90 days hourly) | done |
-| Analyzer (explains a slow moment) | done (`python -m whyslow explain`) |
-| Web page (timeline) | next |
+| Analyzer (explains a slow moment) | done |
+| Web page (timeline + 👍/👎) | done |
+| Start automatically at login | next |
+| Tested on a real Windows laptop | not yet |
 
 ## Try it
 
@@ -27,10 +27,12 @@ python -m venv .venv
 # Ubuntu: source .venv/bin/activate     Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
-python -m whyslow snapshot   # print one snapshot, to check it works
-python -m whyslow collect    # record until Ctrl+C
-python -m whyslow status     # how much is stored
-pytest                       # run the tests
+python -m whyslow web --demo  # see the page with a fake day of data
+python -m whyslow collect     # record your laptop until Ctrl+C (leave it running)
+python -m whyslow web         # the page, with your real data
+python -m whyslow explain     # same explanation, in the terminal
+python -m whyslow status      # how much is stored
+pytest                        # run the tests
 ```
 
 Data is stored in `~/.local/share/whyslow/` on Ubuntu and `%LOCALAPPDATA%\whyslow\` on Windows.
@@ -39,15 +41,18 @@ Data is stored in `~/.local/share/whyslow/` on Ubuntu and `%LOCALAPPDATA%\whyslo
 
 ```
 whyslow/
-  config.py           every setting, each tied to a design decision
-  models.py           what a snapshot contains
-  collector.py        the 5 s loop, heartbeat probe, batching
-  storage.py          SQLite tables, hourly summaries, cleanup
-  analyzer/           score -> slow stretch -> who caused it -> story
+  config.py             every setting, each tied to a design decision
+  models.py             what a snapshot contains
+  collector.py          the 5 s loop, heartbeat probe, batching
+  storage.py            SQLite tables, hourly summaries, cleanup, feedback
+  analyzer/             score -> slow stretch -> who caused it -> story
   data/known_apps.json  friendly names + tips for background apps
   platforms/
-    linux.py          Ubuntu: kernel pressure numbers (PSI), temperature
-    windows.py        Windows: hard faults, "Not Responding" check
+    linux.py            Ubuntu: kernel pressure numbers (PSI), temperature
+    windows.py          Windows: hard faults, "Not Responding" check
+  web.py                local web server (127.0.0.1 only)
+  static/index.html     the timeline page, no outside libraries
+  demo.py               a fake day with three slowdowns
 ```
 
 The design and the reasons behind each choice are in [docs/DESIGN.md](docs/DESIGN.md).

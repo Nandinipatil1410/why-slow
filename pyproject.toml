@@ -23,4 +23,4 @@ build-backend = "setuptools.build_meta"
 packages = ["whyslow", "whyslow.platforms", "whyslow.analyzer"]
 
 [tool.setuptools.package-data]
-whyslow = ["data/*.json"]
+whyslow = ["data/*.json", "static/*.html"]

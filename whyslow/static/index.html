@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Slow</title>
+<style>
+  :root {
+    --bg: #fafaf8; --card: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e4e3de;
+    --ok: #c9d8c5; --warn: #e8a33d; --bad: #d4553a; --ram: #4a78c2; --accent: #2f6fd6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --card: #1f1f1d; --text: #ecebe6; --muted: #9a9993; --line: #33332f;
+      --ok: #3b4a39; --warn: #e0a043; --bad: #e0684d; --ram: #7aa2e6; --accent: #6b9cf0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  button, select { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
+                   background: var(--card); color: var(--text); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chart { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  svg { width: 100%; height: auto; display: block; cursor: crosshair; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-top: 16px; }
+  .card h2 { font-size: 18px; margin: 0 0 12px; }
+  .card p { margin: 0 0 10px; }
+  .try { background: color-mix(in srgb, var(--accent) 10%, transparent); border-left: 3px solid var(--accent);
+         padding: 10px 12px; border-radius: 6px; margin-top: 14px; }
+  .feedback { margin-top: 14px; color: var(--muted); font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .empty { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Why is my laptop slow?</h1>
+  <p class="sub">Click a slow moment on the timeline to see what caused it.</p>
+
+  <div class="bar">
+    <select id="hours">
+      <option value="3">Last 3 hours</option>
+      <option value="24" selected>Last 24 hours</option>
+    </select>
+    <button id="worst" class="primary">Explain the worst slowdown in the last hour</button>
+  </div>
+
+  <div class="chart">
+    <svg id="chart" viewBox="0 0 1000 220" role="img" aria-label="Slowness timeline"></svg>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--ok)"></span>smooth</span>
+      <span><span class="dot" style="background:var(--warn)"></span>a bit slow</span>
+      <span><span class="dot" style="background:var(--bad)"></span>slow</span>
+      <span><span class="dot" style="background:var(--ram)"></span>RAM used</span>
+    </div>
+  </div>
+
+  <div id="result"></div>
+</main>
+
+<script>
+const W = 1000, H = 220, TOP = 10, BOTTOM = 190;
+const svg = document.getElementById("chart");
+let range = { start: 0, end: 0 };
+
+function color(score) {
+  if (score >= 70) return "var(--bad)";
+  if (score >= 40) return "var(--warn)";
+  return "var(--ok)";
+}
+
+function clock(ts) {
+  return new Date(ts * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+async function loadTimeline() {
+  const hours = Number(document.getElementById("hours").value);
+  const points = await (await fetch(`/api/timeline?hours=${hours}`)).json();
+  range.end = Date.now() / 1000;
+  range.start = range.end - hours * 3600;
+  const x = ts => (ts - range.start) / (range.end - range.start) * W;
+  const y = pct => BOTTOM - pct / 100 * (BOTTOM - TOP);
+  const barW = Math.max(W / (hours * 60), 3);  // at least 3 units wide so short spikes stay visible and clickable
+
+  let html = `<line x1="0" x2="${W}" y1="${BOTTOM}" y2="${BOTTOM}" stroke="var(--line)"/>`;
+  for (const p of points) {
+    const h = Math.max(p.score, 3) / 100 * (BOTTOM - TOP);
+    html += `<rect x="${x(p.ts)}" y="${BOTTOM - h}" width="${barW}" height="${h}" fill="${color(p.score)}">` +
+            `<title>${clock(p.ts)}: slowness ${p.score}, CPU ${p.cpu}%, RAM ${p.ram}%</title></rect>`;
+  }
+  if (points.length) {
+    const line = points.map(p => `${x(p.ts).toFixed(1)},${y(p.ram).toFixed(1)}`).join(" ");
+    html += `<polyline points="${line}" fill="none" stroke="var(--ram)" stroke-width="1.5" opacity="0.8"/>`;
+  }
+  for (let i = 0; i <= 4; i++) {  // time labels
+    const ts = range.start + i / 4 * (range.end - range.start);
+    const anchor = i === 0 ? "start" : i === 4 ? "end" : "middle";
+    html += `<text x="${i / 4 * W}" y="${H - 6}" text-anchor="${anchor}" font-size="13" fill="var(--muted)">${clock(ts)}</text>`;
+  }
+  if (!points.length) {
+    html += `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" fill="var(--muted)">No data yet. Is the collector running?</text>`;
+  }
+  svg.innerHTML = html;
+}
+
+svg.addEventListener("click", e => {
+  const box = svg.getBoundingClientRect();
+  const ts = range.start + (e.clientX - box.left) / box.width * (range.end - range.start);
+  explainAt(ts);
+});
+document.getElementById("worst").addEventListener("click", () => explainAt(null));
+document.getElementById("hours").addEventListener("change", loadTimeline);
+
+async function explainAt(ts) {
+  const out = document.getElementById("result");
+  out.innerHTML = `<div class="card empty">Looking...</div>`;
+  const e = await (await fetch(ts ? `/api/explain?at=${ts}` : "/api/explain")).json();
+  const card = document.createElement("div");
+  card.className = "card";
+  const h2 = document.createElement("h2");
+  h2.textContent = e.headline;
+  card.append(h2);
+  for (const d of e.details) {
+    const p = document.createElement("p");
+    p.textContent = d;
+    card.append(p);
+  }
+  if (e.action) {
+    const t = document.createElement("div");
+    t.className = "try";
+    t.textContent = "Try: " + e.action;
+    card.append(t);
+  }
+  if (e.found) card.append(feedbackRow(e));
+  out.replaceChildren(card);
+}
+
+function feedbackRow(e) {
+  const row = document.createElement("div");
+  row.className = "feedback";
+  row.append("Was this right?");
+  for (const [label, helpful] of [["👍 Yes", true], ["👎 No", false]]) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.onclick = async () => {
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start: e.start, end: e.end, cause: e.cause, culprit: e.culprit, helpful }),
+      });
+      row.textContent = "Thanks! This helps the app learn.";
+    };
+    row.append(b);
+  }
+  return row;
+}
+
+loadTimeline();
+setInterval(loadTimeline, 60000);
+</script>
+</body>
+</html>

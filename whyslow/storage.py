@@ -13,6 +13,7 @@ This is called downsampling.
 
 import dataclasses
 import sqlite3
+import time
 from pathlib import Path
 
 from .config import Config
@@ -64,6 +65,17 @@ CREATE TABLE IF NOT EXISTS hourly_apps (
     disk_avg REAL, disk_max REAL,
     PRIMARY KEY (hour_ts, name)
 ) WITHOUT ROWID;
+
+-- 👍/👎 answers. Never deleted: they're the training data for a future model.
+CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY,
+    given_at REAL,
+    start_ts REAL,
+    end_ts REAL,
+    cause TEXT,
+    culprit TEXT,
+    helpful INTEGER
+);
 """
 
 
@@ -92,8 +104,9 @@ class Store:
                 [(s.ts, a.name, a.cpu_percent, a.ram_mb, a.disk_mb_s) for s in snapshots for a in s.apps],
             )
 
-    def snapshots_between(self, start: float, end: float) -> list[Snapshot]:
-        """Load full snapshots (with their apps) for a time window, oldest first."""
+    def snapshots_between(self, start: float, end: float, with_apps: bool = True) -> list[Snapshot]:
+        """Load snapshots for a time window, oldest first. Skip the apps when you
+        only need laptop-wide numbers (like the 24 h timeline): it's ~10x less data."""
         rows = self.db.execute(
             f"SELECT {', '.join(COLUMNS)} FROM snapshots WHERE ts >= ? AND ts < ? ORDER BY ts", (start, end)
         ).fetchall()
@@ -101,6 +114,8 @@ class Store:
         for snap in snaps.values():
             if snap.foreground_hung is not None:
                 snap.foreground_hung = bool(snap.foreground_hung)
+        if not with_apps:
+            return list(snaps.values())
         for ts, name, cpu, ram, disk in self.db.execute(
             "SELECT ts, name, cpu_percent, ram_mb, disk_mb_s FROM app_usage WHERE ts >= ? AND ts < ?", (start, end)
         ):
@@ -143,6 +158,14 @@ class Store:
             self.db.execute("DELETE FROM hourly_system WHERE hour_ts < ?", (summary_cutoff,))
             self.db.execute("DELETE FROM hourly_apps WHERE hour_ts < ?", (summary_cutoff,))
 
+    def save_feedback(self, start: float, end: float, cause: str | None, culprit: str | None, helpful: bool) -> None:
+        """A 👍/👎 on an explanation. These become labelled examples for a v2 model."""
+        with self.db:
+            self.db.execute(
+                "INSERT INTO feedback (given_at, start_ts, end_ts, cause, culprit, helpful) VALUES (?, ?, ?, ?, ?, ?)",
+                (time.time(), start, end, cause, culprit, int(helpful)),
+            )
+
     def counts(self) -> dict[str, int]:
-        tables = ("snapshots", "app_usage", "hourly_system", "hourly_apps")
+        tables = ("snapshots", "app_usage", "hourly_system", "hourly_apps", "feedback")
         return {t: self.db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in tables}

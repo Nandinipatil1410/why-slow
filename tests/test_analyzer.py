@@ -94,7 +94,7 @@ def test_chrome_memory_leak_is_explained():
     assert e.cause == "app_memory"
     text = e.text()
     assert "Google Chrome" in text
-    assert "above its usual" in text
+    assert "when it normally uses about 1.2 GB" in text
     assert "would have felt smooth" in text  # the what-if says Chrome was the real cause
     assert "started building up" in text  # change point found the slow growth before the freeze
     assert "Try: Close the tabs" in text
@@ -103,7 +103,7 @@ def test_chrome_memory_leak_is_explained():
 def test_cold_start_compares_with_just_before():
     e = explain(chrome_leak_store(with_history=False), at=T)
     assert e.culprit == "chrome"
-    assert "what it used just before" in e.text()
+    assert "just before" in e.text()
 
 
 def test_no_slowdown():

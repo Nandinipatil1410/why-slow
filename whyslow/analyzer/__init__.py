@@ -39,7 +39,8 @@ def explain(store, at: float | None = None, now: float | None = None) -> Explana
 
     ep = pick_episode(find_episodes([score_snapshot(s) for s in window]), at)
     if ep is None:
-        return Explanation(found=False, headline="No slowdown found around that time. The laptop was running smoothly.")
+        where = "around that time" if at else "in the last hour"
+        return Explanation(found=False, headline=f"No slowdown found {where}. The laptop was running smoothly.")
 
     during = [s for s in snaps if ep.start <= s.ts <= ep.end]
     before = [s for s in snaps if ep.start - BEFORE_S <= s.ts < ep.start]

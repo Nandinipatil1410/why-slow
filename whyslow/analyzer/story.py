@@ -105,11 +105,16 @@ def waiting_sentence(ep: Episode, during) -> str | None:
 
 
 def culprit_sentence(s: Suspect, metric: str) -> str:
-    usual = "its usual" if s.baseline == "history" else "what it used just before"
-    share = "almost all of the rise" if s.power >= 0.95 else f"about {s.power * 100:.0f}% of the rise"
+    if s.normal < {"ram_mb": 50, "cpu_percent": 1, "disk_mb_s": 1}[metric]:
+        usual = "when it's normally almost idle" if s.baseline == "history" else "after being almost idle just before"
+    elif s.baseline == "history":
+        usual = f"when it normally uses about {amount(metric, s.normal)}"
+    else:
+        usual = f"up from about {amount(metric, s.normal)} just before"
+    share = "almost all" if s.power >= 0.95 else f"about {s.power * 100:.0f}%"
     return (
-        f"The main cause was {friendly(s.name)}, which used {amount(metric, s.level)}. "
-        f"That's {amount(metric, s.excess)} above {usual}, and {share}."
+        f"The main cause was {friendly(s.name)}, which used {amount(metric, s.level)}, {usual}. "
+        f"That's {share} of the increase."
     )
 
 
