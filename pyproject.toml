@@ -20,4 +20,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["whyslow", "whyslow.platforms"]
+packages = ["whyslow", "whyslow.platforms", "whyslow.analyzer"]
+
+[tool.setuptools.package-data]
+whyslow = ["data/*.json"]
