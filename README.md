@@ -17,8 +17,8 @@ Runs on Windows and Ubuntu, fully offline. Nothing leaves your laptop, and there
 | --- | --- |
 | Collector (snapshots every 5 s) | done |
 | Storage (SQLite, 7 days detail + 90 days hourly) | done |
-| Analyzer (explains a slow moment) | next |
-| Web page (timeline) | later |
+| Analyzer (explains a slow moment) | done (`python -m whyslow explain`) |
+| Web page (timeline) | next |
 
 ## Try it
 
@@ -43,6 +43,8 @@ whyslow/
   models.py           what a snapshot contains
   collector.py        the 5 s loop, heartbeat probe, batching
   storage.py          SQLite tables, hourly summaries, cleanup
+  analyzer/           score -> slow stretch -> who caused it -> story
+  data/known_apps.json  friendly names + tips for background apps
   platforms/
     linux.py          Ubuntu: kernel pressure numbers (PSI), temperature
     windows.py        Windows: hard faults, "Not Responding" check
