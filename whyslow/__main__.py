@@ -1,5 +1,7 @@
 """Command line entry point.
 
+    python -m whyslow install    start collecting now and at every login
+    python -m whyslow uninstall  stop starting at login
     python -m whyslow collect    run the collector until Ctrl+C
     python -m whyslow web        open the timeline page in your browser
     python -m whyslow explain    explain the worst slowdown in the last hour
@@ -15,7 +17,10 @@ import dataclasses
 import json
 import signal
 import time
+import os
 import webbrowser
+
+import psutil
 
 from .analyzer import explain
 from .collector import Collector, Sampler
@@ -36,16 +41,30 @@ def demo_config() -> Config:
     return config
 
 
+def already_running(pid_file) -> bool:
+    """True if another collector is already running, so we never record everything twice."""
+    try:
+        pid = int(pid_file.read_text())
+        return psutil.pid_exists(pid) and "whyslow" in " ".join(psutil.Process(pid).cmdline())
+    except (OSError, ValueError, psutil.Error):
+        return False
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="whyslow", description="Find out why your laptop is slow.")
-    parser.add_argument("command", choices=["collect", "web", "explain", "snapshot", "status"])
+    parser.add_argument("command", choices=["collect", "web", "explain", "snapshot", "status", "install", "uninstall"])
     parser.add_argument("--at", help="time today to explain, like 14:41")
     parser.add_argument("--demo", action="store_true", help="use a fake day of data")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
     config = demo_config() if args.demo else Config()
 
-    if args.command == "explain":
+    if args.command in ("install", "uninstall"):
+        from . import autostart
+
+        print(autostart.install() if args.command == "install" else autostart.uninstall())
+
+    elif args.command == "explain":
         at = None
         if args.at:
             hour, minute = (int(x) for x in args.at.split(":"))
@@ -78,13 +97,22 @@ def main() -> None:
             print(f"{table}: {count} rows")
 
     elif args.command == "collect":
+        pid_file = config.data_dir / "collector.pid"
+        if already_running(pid_file):
+            print("A collector is already running.")
+            return
+        config.data_dir.mkdir(parents=True, exist_ok=True)
+        pid_file.write_text(str(os.getpid()))
         store = Store(config.db_path)
         collector = Collector(Sampler(get_probe(), config), store, config)
         signal.signal(signal.SIGINT, lambda *_: collector.stop())
         signal.signal(signal.SIGTERM, lambda *_: collector.stop())
         print(f"Collecting every {config.snapshot_interval_s:g} s into {config.db_path}. Ctrl+C to stop.")
-        collector.run()
-        store.close()
+        try:
+            collector.run()
+        finally:
+            store.close()
+            pid_file.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
