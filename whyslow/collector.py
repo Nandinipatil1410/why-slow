@@ -177,8 +177,9 @@ class Collector:
                     self.stop_event.wait(wait)  # a sleep that stop() can interrupt
                 woke = time.monotonic()
                 lag = heartbeat_lag_ms(next_tick, woke, interval)
-                if lag is None:
-                    next_tick = woke  # we were asleep: start counting again from now
+                # Count from now, not from the missed time. Otherwise after one long
+                # stall the missed ticks run back to back and each looks late too.
+                next_tick = max(next_tick, woke)
 
                 snap = self.sampler.sample()
                 snap.heartbeat_lag_ms = lag

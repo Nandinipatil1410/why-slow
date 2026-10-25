@@ -69,6 +69,12 @@ def test_score_picks_worst_waiting_signal():
     assert m.resource == "memory" and m.score == 100
 
 
+def test_hard_faults_are_ignored_while_ram_has_room():
+    # Windows counts plain file reads as hard faults too.
+    assert score_snapshot(make_snap(0, chrome_mb=0, hard_faults_per_s=8000)).score == 0  # ~43% RAM
+    assert score_snapshot(make_snap(0, chrome_mb=3500, hard_faults_per_s=8000)).resource == "memory"  # ~85% RAM
+
+
 def test_frozen_window_is_always_slow():
     m = score_snapshot(make_snap(0, foreground_hung=True))
     assert m.resource == "frozen" and m.score == 100
@@ -79,6 +85,18 @@ def test_episode_does_not_split_on_small_dips():
     moments = [Moment(i * 5.0, s, "cpu") for i, s in enumerate(scores)]
     [ep] = find_episodes(moments)
     assert ep.start == 5 and ep.end == 20
+
+
+def test_close_stretches_are_joined_and_blips_dropped():
+    scores = [0, 90, 90, 0, 0, 90, 0] + [0] * 20 + [90, 0]  # two stretches 15 s apart, then a lone blip
+    moments = [Moment(i * 5.0, s, "cpu") for i, s in enumerate(scores)]
+    [ep] = find_episodes(moments)
+    assert ep.start == 5 and ep.end == 25
+
+
+def test_a_single_frozen_snapshot_still_counts():
+    moments = [Moment(0, 0, None), Moment(5, 100, "frozen"), Moment(10, 0, None)]
+    assert len(find_episodes(moments)) == 1
 
 
 def test_change_point_finds_the_shift():
@@ -147,6 +165,21 @@ def test_full_disk():
     e = explain(store, at=T + 60)
     assert e.cause == "disk_full"
     assert "96% full" in e.action
+
+
+def test_app_tip_is_only_used_for_the_right_kind_of_slowness():
+    # Chrome's tip is about tabs and RAM, so it shouldn't be the fix for a busy disk.
+    store = Store(":memory:")
+    chrome = AppUsage("chrome.exe", 5, 1200, 40.0)
+    store.save(
+        [
+            make_snap(float(ts), disk_latency_ms=80 if ts >= T else 3, disk_read_mb_s=40, apps=[chrome] if ts >= T else [])
+            for ts in range(int(T - 300), int(T + 300), 5)
+        ]
+    )
+    e = explain(store, at=T + 60)
+    assert e.cause == "app_disk" and e.culprit == "chrome.exe"
+    assert "tabs" not in e.action
 
 
 def test_cached_io_is_not_blamed_when_disk_was_idle():

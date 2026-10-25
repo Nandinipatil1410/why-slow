@@ -18,6 +18,7 @@ If not, the laptop is simply short on RAM/CPU for this workload.
 import statistics
 from dataclasses import dataclass
 
+from ..config import Config
 from ..models import Snapshot
 
 DAY = 86400
@@ -27,7 +28,7 @@ METRIC = {"memory": "ram_mb", "cpu": "cpu_percent", "disk": "io_mb_s", "frozen":
 HOURLY_COLUMN = {"ram_mb": "ram_avg", "cpu_percent": "cpu_avg", "io_mb_s": "io_avg"}
 # The smallest "normal spread" we allow, so a perfectly steady app isn't
 # flagged as hugely surprising over a tiny change.
-MIN_SPREAD = {"ram_mb": 100.0, "cpu_percent": 5.0, "io_mb_s": 2.0}
+MIN_SPREAD = {"ram_mb": 100.0, "cpu_percent": 10.0, "io_mb_s": 2.0}
 # Below these, the laptop feels fine (used by the what-if).
 COMFORTABLE = {"ram_mb": 80.0, "cpu_percent": 70.0}
 
@@ -69,6 +70,25 @@ def app_levels(snaps: list[Snapshot], metric: str) -> dict[str, float]:
     return {name: total / len(snaps) for name, total in totals.items()} if snaps else {}
 
 
+def levels_before(snaps: list[Snapshot], metric: str, names) -> dict[str, float]:
+    """Like app_levels, for the minutes before a slowdown.
+
+    We only save the top apps, so an app missing from a snapshot wasn't idle,
+    just smaller than the last one saved. Here we count it at that size (the
+    most it could have been), so a 900 MB app that just crept into the top list
+    doesn't look like it came from nothing."""
+    if not snaps:
+        return {}
+    totals = dict.fromkeys(names, 0.0)
+    for s in snaps:
+        values = {a.name: getattr(a, metric) for a in s.apps}
+        ranked = sorted(values.values(), reverse=True)
+        cutoff = ranked[Config.top_apps_per_resource - 1] if len(ranked) >= Config.top_apps_per_resource else 0.0
+        for name in totals:
+            totals[name] += values.get(name, cutoff)
+    return {name: total / len(snaps) for name, total in totals.items()}
+
+
 def history_baseline(store, name: str, metric: str, before: float) -> tuple[float, float] | None:
     """The app's normal level and spread from the last 7 days of hourly summaries."""
     column = HOURLY_COLUMN[metric]
@@ -90,7 +110,7 @@ def find_suspects(store, during: list[Snapshot], before: list[Snapshot], resourc
         if disk_mb_s < MIN_DISK_MB_S:
             return []  # the disk was slow but barely used: no app to blame
     now_levels = app_levels(during, metric)
-    before_levels = app_levels(before, metric)
+    before_levels = levels_before(before, metric, now_levels)
     start = during[0].ts
 
     rows = []

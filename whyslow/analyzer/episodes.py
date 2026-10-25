@@ -4,6 +4,9 @@ Two methods:
 - hysteresis: a stretch starts when the score goes above 40 and only ends
   when it drops below 20. Two limits instead of one stop a score hovering
   around 30 from splitting into many tiny stretches.
+  On top of that, stretches less than a minute apart are joined (one bad
+  minute, not five alerts), and a single slow snapshot on its own is dropped
+  as a blip. A frozen window always counts, even for one snapshot.
 - change point: slowness often comes after the cause. RAM fills for a few
   minutes before things freeze. So we look back before the stretch and find
   the moment a usage number shifted the most (the split that best divides
@@ -16,6 +19,8 @@ from dataclasses import dataclass
 from .score import Moment
 
 ENTER, EXIT = 40.0, 20.0
+JOIN_GAP_S = 60.0
+MIN_MOMENTS = 2
 
 
 @dataclass
@@ -46,7 +51,16 @@ def find_episodes(moments: list[Moment], max_gap_s: float = 15.0) -> list[Episod
             current.append(m)
     if current:
         episodes.append(_make_episode(current))
-    return episodes
+    return _join_and_drop_blips(episodes)
+
+
+def _join_and_drop_blips(episodes: list[Episode]) -> list[Episode]:
+    joined: list[Episode] = []
+    for e in episodes:
+        if joined and e.start - joined[-1].end <= JOIN_GAP_S:
+            e = _make_episode(joined.pop().moments + e.moments)
+        joined.append(e)
+    return [e for e in joined if len(e.moments) >= MIN_MOMENTS or e.resource == "frozen"]
 
 
 def _make_episode(moments: list[Moment]) -> Episode:

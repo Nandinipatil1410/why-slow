@@ -133,7 +133,10 @@ def what_if_sentence(w: WhatIf) -> str:
 
 def choose_cause(ep: Episode, during, name: str | None, whatif: WhatIf | None, freq_drop: float | None):
     """Pick the cause category and its action. Rules only live here, at the very end."""
-    tip = known(name)["tip"] if name and known(name) else None
+    info = known(name) if name else None
+    resource = "cpu" if ep.resource == "frozen" else ep.resource
+    # A tip can say which kind of slowness it's about ("Close tabs" doesn't fix a busy disk).
+    tip = info["tip"] if info and resource in info.get("for", [resource]) else None
 
     if ep.resource == "frozen":
         app = friendly(name) if name else "The app you were using"
