@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="318" height="64" viewBox="0 0 318 64" role="img" aria-label="why slow">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4475f"/>
+      <stop offset="1" stop-color="#d0193a"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#g)"/>
+  <text x="32" y="43" text-anchor="middle" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="26" font-weight="800" fill="#fff">WS</text>
+  <text x="78" y="46" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="44" font-weight="700" letter-spacing="-1.5" fill="#ecedf2">why slow</text>
+</svg>
