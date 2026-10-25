@@ -56,7 +56,7 @@
   .chip svg { color: var(--brand); }
   .chip select { border: 0; background: transparent; font-weight: 500; cursor: pointer; padding: 0; outline-offset: 4px; }
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
-          font-size: 13px; font-weight: 600; }
+          font-size: 13px; font-weight: 600; white-space: nowrap; }
   .pill.live { background: color-mix(in srgb, var(--live) 14%, transparent); color: var(--live); }
   .pill.bad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
   .pill.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: color-mix(in srgb, var(--warn) 70%, var(--text)); }
@@ -105,12 +105,37 @@
   .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--tint); border: 1px solid var(--line); }
   .seg button { border: 0; background: transparent; padding: 5px 14px; border-radius: 7px; cursor: pointer; font-size: 14px; color: var(--muted); }
   .seg button.on { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-  svg#chart { width: 100%; height: auto; display: block; cursor: crosshair; }
-  svg#chart rect.bar { transition: opacity .15s; }
-  svg#chart rect.bar:hover { opacity: .7; }
+  .plot { position: relative; }
+  svg#chart { width: 100%; height: auto; display: block; }
+  svg#chart.over-bar { cursor: pointer; }
+  #hover-band { fill: var(--brand); opacity: .08; pointer-events: none; }
+  #hover-line { stroke: var(--brand); stroke-width: 1.5; opacity: .5; pointer-events: none; }
+  .nudge circle { fill: var(--brand); }
+  .nudge .ring { fill: none; stroke: var(--brand); stroke-width: 2; animation: ring 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes ring { from { transform: scale(.6); opacity: .9; } to { transform: scale(2.2); opacity: 0; } }
+
+  /* Hover card for one minute */
+  .tip { position: absolute; top: 0; left: 0; width: 230px; pointer-events: none; z-index: 3;
+         background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.35);
+         padding: 12px 14px; font-size: 14px; opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s; }
+  .tip.show { opacity: 1; transform: none; }
+  .tip-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .tip-head b { font-size: 15px; }
+  .meter { display: grid; grid-template-columns: 62px 1fr 42px; align-items: center; gap: 8px; margin-top: 7px; }
+  .meter span:first-child { color: var(--muted); font-size: 13px; }
+  .meter i { display: block; height: 6px; border-radius: 3px; background: var(--tint); border: 1px solid var(--line); overflow: hidden; }
+  .meter i em { display: block; height: 100%; border-radius: 3px; }
+  .meter b { text-align: right; font-variant-numeric: tabular-nums; }
+  .tip-foot { margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--brand-ink); font-weight: 600;
+              font-size: 13px; display: flex; align-items: center; gap: 6px; }
+
+  /* "Click a bar" instruction */
+  .callout { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 14px; border-radius: 12px;
+             background: var(--brand-soft); color: var(--text); font-size: 15px; }
+  .callout .ico-box { width: 34px; height: 34px; flex: none; background: var(--card); }
+  .callout b { color: var(--brand-ink); }
   .legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-top: 10px; }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
-  .hint { color: var(--muted); font-size: 13px; text-align: center; margin-top: 14px; }
 
   /* Explanation: split card */
   .story { display: grid; grid-template-columns: 1.55fr 1fr; border-radius: 20px; overflow: hidden;
@@ -208,6 +233,7 @@
   <symbol id="i-bulb" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2z"/></g></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></g></symbol>
   <symbol id="i-battery" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2"/><path d="M6 10v4M9 10v4"/></g></symbol>
+  <symbol id="i-click" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9l11 4-5 2-2 5z"/><path d="M5 3v2M3 5h2M9 3.5l-.8 1.4M3.5 9l1.4-.8"/></g></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
@@ -266,7 +292,7 @@
     <div class="head">
       <div class="eyebrow">Timeline</div>
       <h2>Your day at a glance</h2>
-      <p>Each bar is one minute. Taller and redder means it felt slower. Click any bar to find out why.</p>
+      <p>Each bar is one minute. Taller and redder means it felt slower.</p>
     </div>
     <div class="chart-card">
       <div class="chart-top">
@@ -276,7 +302,14 @@
           <button data-hours="24" class="on">24h</button>
         </div>
       </div>
-      <svg id="chart" viewBox="0 0 1000 220" role="img" aria-label="Slowness timeline"></svg>
+      <div class="callout">
+        <span class="ico-box"><svg width="18" height="18"><use href="#i-click"/></svg></span>
+        <span><b>Click any bar</b> to see what slowed your laptop down at that moment. Red bars are the slow ones.</span>
+      </div>
+      <div class="plot">
+        <svg id="chart" viewBox="0 0 1000 220" role="img" aria-label="Slowness timeline. Click a bar to explain that minute."></svg>
+        <div class="tip" id="tip" aria-hidden="true"></div>
+      </div>
       <div class="legend">
         <span><span class="sw" style="background:var(--ok)"></span>smooth</span>
         <span><span class="sw" style="background:var(--warn)"></span>a bit slow</span>
@@ -285,7 +318,6 @@
         <span id="batt-legend" hidden><span class="sw" style="background:var(--batt)"></span>battery</span>
       </div>
     </div>
-    <p class="hint">Tip: hover a bar to see CPU and RAM for that minute.</p>
   </div>
 </section>
 
@@ -382,10 +414,11 @@ async function loadTimeline() {
   html += `<line x1="0" x2="${W}" y1="${BOTTOM}" y2="${BOTTOM}" stroke="var(--line)"/>`;
   for (const p of points) {
     const h = Math.max(p.score, 3) / 100 * (BOTTOM - TOP);
-    html += `<rect class="bar" x="${x(p.ts)}" y="${BOTTOM - h}" width="${barW}" height="${h}" rx="1" fill="${color(p.score)}">` +
-            `<title>${clock(p.ts)}: slowness ${p.score}, CPU ${p.cpu}%, RAM ${p.ram}%` +
-            `${p.battery != null ? `, battery ${Math.round(p.battery)}%${p.charging ? " (charging)" : ""}` : ""}</title></rect>`;
+    html += `<rect class="bar" x="${x(p.ts)}" y="${BOTTOM - h}" width="${barW}" height="${h}" rx="1" fill="${color(p.score)}"/>`;
   }
+  range.barW = barW;
+  html += `<rect id="hover-band" x="0" y="${TOP}" width="${Math.max(barW + 6, 8)}" height="${BOTTOM - TOP}" rx="3" visibility="hidden"/>`;
+  html += `<line id="hover-line" x1="0" x2="0" y1="${TOP}" y2="${BOTTOM}" visibility="hidden"/>`;
   // One line per unbroken stretch, so time with no readings (laptop off or asleep) shows as a gap.
   const lines = (key, attrs) => {
     let stretch = [], prevTs = -Infinity;
@@ -412,7 +445,15 @@ async function loadTimeline() {
   if (!points.length) {
     html += `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" fill="var(--muted)">No data yet. Is the collector running?</text>`;
   }
+  // A pulsing dot on the latest slow bar shows where to click, until the first click.
+  const lastSlow = [...points].reverse().find(p => p.score >= 70);
+  if (lastSlow && !chartClicked) {
+    const cx = x(lastSlow.ts) + barW / 2;
+    const cy = Math.max(BOTTOM - lastSlow.score / 100 * (BOTTOM - TOP) - 2, TOP + 6);
+    html += `<g class="nudge" pointer-events="none"><circle class="ring" cx="${cx}" cy="${cy}" r="6"/><circle cx="${cx}" cy="${cy}" r="4"/></g>`;
+  }
   svg.innerHTML = html;
+  hideTip();
 
   // Hero counter: separate slow stretches (score 70+), not slow minutes.
   let stretches = 0, prev = -Infinity;
@@ -440,10 +481,77 @@ function setHours(h) {
   loadTimeline();
 }
 
-svg.addEventListener("click", e => {
+// The minute under the mouse, if a bar is close enough to count as pointing at it.
+function pointAt(clientX) {
   const box = svg.getBoundingClientRect();
-  const ts = range.start + (e.clientX - box.left) / box.width * (range.end - range.start);
-  explainAt(ts);
+  const span = range.end - range.start;
+  const ts = range.start + (clientX - box.left) / box.width * span;
+  const reach = Math.max(range.barW / W * span, 60) + 8 / box.width * span;  // the bar's width plus a few pixels of slack
+  let best = null;
+  for (const p of points) {
+    const d = Math.abs(p.ts + 30 - ts);  // a minute's bar covers ts..ts+60
+    if (d <= reach && (!best || d < best.d)) best = { p, d };
+  }
+  return best && best.p;
+}
+
+const tip = document.getElementById("tip");
+let chartClicked = false;
+
+function meter(label, pct, fill, extra = "") {
+  const v = Math.round(pct);
+  return `<div class="meter"><span>${label}</span><i><em style="width:${Math.min(v, 100)}%;background:${fill}"></em></i><b>${v}%${extra}</b></div>`;
+}
+
+function showTip(p, clientX) {
+  const level = p.score >= 70 ? ["bad", "Slow"] : p.score >= 40 ? ["warn", "A bit slow"] : ["live", "Smooth"];
+  tip.innerHTML =
+    `<div class="tip-head"><b>${clock(p.ts)}</b><span class="pill ${level[0]}"><span class="dot"></span>${level[1]}</span></div>` +
+    meter("Slowness", p.score, color(p.score)) +
+    meter("CPU", p.cpu, "var(--brand)") +
+    meter("RAM", p.ram, "var(--ram)") +
+    (p.battery != null ? meter("Battery", p.battery, "var(--batt)", p.charging ? " ⚡" : "") : "") +
+    `<div class="tip-foot">Click to see why <svg width="14" height="14"><use href="#i-arrow"/></svg></div>`;
+
+  const plot = svg.parentElement.getBoundingClientRect();
+  const sx = plot.width / W;
+  const barX = (p.ts - range.start) / (range.end - range.start) * W;
+  const band = document.getElementById("hover-band");
+  band.setAttribute("x", barX + range.barW / 2 - band.getAttribute("width") / 2);
+  band.setAttribute("visibility", "visible");
+  const line = document.getElementById("hover-line");
+  line.setAttribute("x1", barX + range.barW / 2);
+  line.setAttribute("x2", barX + range.barW / 2);
+  line.setAttribute("visibility", "visible");
+
+  // Sit beside the bar, flipping to the left near the right edge.
+  const anchor = (barX + range.barW / 2) * sx;
+  const left = anchor + 16 + tip.offsetWidth > plot.width ? anchor - 16 - tip.offsetWidth : anchor + 16;
+  tip.style.transform = "";
+  tip.style.left = `${Math.max(0, left)}px`;
+  tip.style.top = "8px";
+  tip.classList.add("show");
+  svg.classList.add("over-bar");
+}
+
+function hideTip() {
+  tip.classList.remove("show");
+  svg.classList.remove("over-bar");
+  for (const id of ["hover-band", "hover-line"]) document.getElementById(id)?.setAttribute("visibility", "hidden");
+}
+
+svg.addEventListener("mousemove", e => {
+  const p = pointAt(e.clientX);
+  p ? showTip(p, e.clientX) : hideTip();
+});
+svg.addEventListener("mouseleave", hideTip);
+svg.addEventListener("click", e => {
+  const p = pointAt(e.clientX);
+  if (!p) return;
+  chartClicked = true;
+  svg.querySelector(".nudge")?.remove();
+  hideTip();
+  explainAt(p.ts + 30);
 });
 document.querySelectorAll("[data-worst]").forEach(b => b.addEventListener("click", () => explainAt(null)));
 hoursSelect.addEventListener("change", () => setHours(hoursSelect.value));
