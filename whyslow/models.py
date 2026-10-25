@@ -39,6 +39,11 @@ class Snapshot:
     cpu_freq_mhz: float | None = None  # drops when the laptop overheats or saves power
     temp_c: float | None = None  # Ubuntu only in v1
 
+    # Battery (None on a desktop). Not used yet: recorded now so a future
+    # battery report has weeks of history to look at.
+    battery_percent: float | None = None
+    on_charger: bool | None = None
+
     # Waiting, on both OSes
     heartbeat_lag_ms: float | None = None  # how late the collector itself woke up
     disk_latency_ms: float | None = None  # average time per disk read/write

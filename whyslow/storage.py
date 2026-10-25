@@ -25,9 +25,14 @@ DAY = 86400
 # Snapshot columns, taken straight from the dataclass so the two can't drift apart.
 COLUMNS = [f.name for f in dataclasses.fields(Snapshot) if f.name != "apps"]
 TEXT_COLUMNS = {"foreground_app"}
+BOOL_COLUMNS = {"foreground_hung", "on_charger"}  # stored as 0/1
 # Columns that get an hourly average and max. ts is the key, and the
 # foreground app/hung pair is summarised separately as a count of frozen samples.
 SUMMARY_COLUMNS = [c for c in COLUMNS if c not in ("ts", "foreground_app", "foreground_hung")]
+
+
+def _hourly_columns_sql() -> list[str]:
+    return [f"{c}_avg REAL" for c in SUMMARY_COLUMNS] + [f"{c}_max REAL" for c in SUMMARY_COLUMNS]
 
 
 def _column_sql(name: str) -> str:
@@ -87,6 +92,21 @@ class Store:
         # WAL lets the web page read while the collector writes.
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript(SCHEMA)
+        self._add_missing_columns()
+
+    def _add_missing_columns(self) -> None:
+        """A database made by an older version lacks newer columns (like battery).
+        Add them, so updating the app never means losing your history."""
+        wanted = {
+            "snapshots": [_column_sql(c) for c in COLUMNS if c != "ts"],
+            "hourly_system": _hourly_columns_sql(),
+        }
+        with self.db:
+            for table, columns in wanted.items():
+                have = {row[1] for row in self.db.execute(f"PRAGMA table_info({table})")}
+                for column in columns:
+                    if column.split()[0] not in have:
+                        self.db.execute(f"ALTER TABLE {table} ADD COLUMN {column}")
 
     def close(self) -> None:
         self.db.close()
@@ -112,8 +132,9 @@ class Store:
         ).fetchall()
         snaps = {row[0]: Snapshot(**dict(zip(COLUMNS, row))) for row in rows}
         for snap in snaps.values():
-            if snap.foreground_hung is not None:
-                snap.foreground_hung = bool(snap.foreground_hung)
+            for c in BOOL_COLUMNS:
+                if getattr(snap, c) is not None:
+                    setattr(snap, c, bool(getattr(snap, c)))
         if not with_apps:
             return list(snaps.values())
         for ts, name, cpu, ram, disk in self.db.execute(

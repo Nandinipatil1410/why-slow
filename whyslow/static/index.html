@@ -6,70 +6,351 @@
 <title>Why Slow</title>
 <style>
   :root {
-    --bg: #fafaf8; --card: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e4e3de;
-    --ok: #c9d8c5; --warn: #e8a33d; --bad: #d4553a; --ram: #4a78c2; --accent: #2f6fd6;
+    --bg: #ffffff; --tint: #f6f7fb; --hero: #eaf2fd; --card: #ffffff; --text: #16171d; --muted: #5f6270;
+    --line: #e6e7ee; --brand: #c8102e; --brand-soft: #fde8eb; --brand-ink: #a50d25;
+    --ok: #cfe3d2; --warn: #e8a33d; --bad: #e5484d; --ram: #3b6fd4; --live: #22a35a;
+    --dark: #1b1720; --dark-2: #2a2530; --shadow: 0 10px 30px -12px rgba(22, 23, 29, .18);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #161615; --card: #1f1f1d; --text: #ecebe6; --muted: #9a9993; --line: #33332f;
-      --ok: #3b4a39; --warn: #e0a043; --bad: #e0684d; --ram: #7aa2e6; --accent: #6b9cf0;
+      --bg: #121317; --tint: #17181d; --hero: #161c27; --card: #1c1d23; --text: #ecedf2; --muted: #a0a3b0;
+      --line: #2c2e36; --brand: #ef3e57; --brand-soft: #3a1a20; --brand-ink: #ff7d8f;
+      --ok: #33473a; --warn: #e0a043; --bad: #ef5f63; --ram: #7aa2f0; --live: #3ccf7a;
+      --dark: #0c0b0f; --dark-2: #1f1b24; --shadow: 0 10px 30px -12px rgba(0, 0, 0, .6);
     }
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
   body { margin: 0; background: var(--bg); color: var(--text);
-         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif; }
-  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; }
-  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
-  button, select { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
-                   background: var(--card); color: var(--text); cursor: pointer; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .chart { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
-  svg { width: 100%; height: auto; display: block; cursor: crosshair; }
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-top: 8px; }
-  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-top: 16px; }
-  .card h2 { font-size: 18px; margin: 0 0 12px; }
-  .card p { margin: 0 0 10px; }
-  .try { background: color-mix(in srgb, var(--accent) 10%, transparent); border-left: 3px solid var(--accent);
-         padding: 10px 12px; border-radius: 6px; margin-top: 14px; }
-  .feedback { margin-top: 14px; color: var(--muted); font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .empty { color: var(--muted); }
-  .demo { background: var(--warn); color: #1d1d1b; border-radius: 8px; padding: 8px 12px; margin-bottom: 16px; font-size: 14px; }
+         font: 16px/1.55 Inter, "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, Ubuntu, sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+  h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.2; }
+  button, select { font: inherit; color: inherit; }
+
+  /* Top bar */
+  header { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 92%, transparent);
+           backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  header .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+  .logo-mark { width: 30px; height: 30px; border-radius: 7px; background: var(--brand); color: #fff;
+               display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+  .logo b { display: block; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+  .logo small { display: block; font-size: 11px; color: var(--muted); margin-top: -3px; }
+  nav { display: flex; gap: 4px; margin: 0 auto; }
+  nav a { padding: 6px 12px; border-radius: 8px; color: var(--text); text-decoration: none; font-size: 15px;
+          transition: background .15s, color .15s; }
+  nav a:hover { background: var(--tint); }
+  nav a.active { background: var(--brand-soft); color: var(--brand-ink); font-weight: 600; }
+
+  /* Buttons and chips */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 10px;
+         border: 1px solid var(--line); background: var(--card); font-weight: 600; cursor: pointer;
+         text-decoration: none; color: var(--text); transition: transform .15s, box-shadow .15s, background .15s; }
+  .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff;
+                 box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--brand) 70%, transparent); }
+  .btn.outline { border-color: color-mix(in srgb, var(--brand) 45%, transparent); color: var(--brand-ink); padding: 7px 16px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px;
+          background: var(--card); border: 1px solid var(--line); font-size: 14px; font-weight: 500; }
+  .chip svg { color: var(--brand); }
+  .chip select { border: 0; background: transparent; font-weight: 500; cursor: pointer; padding: 0; outline-offset: 4px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+          font-size: 13px; font-weight: 600; }
+  .pill.live { background: color-mix(in srgb, var(--live) 14%, transparent); color: var(--live); }
+  .pill.bad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+  .pill.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: color-mix(in srgb, var(--warn) 70%, var(--text)); }
+  .pill.calm { background: var(--tint); color: var(--muted); border: 1px solid var(--line); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; }
+  .live .dot { animation: pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .eyebrow { color: var(--brand); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+
+  /* Hero */
+  .hero { background: var(--hero); padding: 64px 0 80px; position: relative; overflow: hidden; }
+  .hero .wrap { display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; align-items: center; }
+  .badge { display: inline-flex; align-items: center; gap: 12px; padding: 10px 18px; border-radius: 999px;
+           background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
+           font-size: 12px; font-weight: 700; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+  .badge svg { color: var(--live); }
+  .hero h1 { font-size: clamp(32px, 5vw, 48px); margin: 22px 0 10px; font-weight: 800; }
+  .hero .lead { color: var(--muted); font-size: 18px; margin: 0 0 24px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .hero .row + .row { margin-top: 14px; }
+  .stat-chip { display: inline-flex; align-items: center; gap: 12px; padding: 6px 16px 6px 8px; border-radius: 10px;
+               background: var(--card); border: 1px solid var(--line); }
+  .stat-chip .ico { width: 34px; height: 34px; border-radius: 50%; background: var(--brand-soft); color: var(--brand);
+                    display: grid; place-items: center; }
+  .stat-chip b { font-size: 20px; line-height: 1; display: block; }
+  .stat-chip small { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+  .stat-chip small .dot { width: 6px; height: 6px; margin-right: 4px; vertical-align: 1px; }
+  .hero-art { justify-self: center; color: color-mix(in srgb, var(--muted) 45%, transparent); width: 100%; max-width: 360px; }
+  .scroll-down { position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%); width: 44px; height: 44px;
+                 border-radius: 50%; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
+                 display: grid; place-items: center; color: var(--muted); z-index: 2; }
+  .demo { background: color-mix(in srgb, var(--warn) 18%, var(--card)); border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent);
+          border-radius: 10px; padding: 10px 14px; margin-bottom: 18px; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
+
+  /* Sections */
+  section { padding: 80px 0; }
+  section.tinted { background: var(--tint); }
+  .head { text-align: center; max-width: 640px; margin: 0 auto 40px; }
+  .head h2 { font-size: clamp(26px, 3.6vw, 36px); margin: 8px 0 10px; font-weight: 800; }
+  .head p { color: var(--muted); margin: 0; }
+
+  .chart-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px 22px 16px;
+                box-shadow: var(--shadow); }
+  .chart-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chart-top h3 { margin: 0; font-size: 17px; }
+  .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--tint); border: 1px solid var(--line); }
+  .seg button { border: 0; background: transparent; padding: 5px 14px; border-radius: 7px; cursor: pointer; font-size: 14px; color: var(--muted); }
+  .seg button.on { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  svg#chart { width: 100%; height: auto; display: block; cursor: crosshair; }
+  svg#chart rect.bar { transition: opacity .15s; }
+  svg#chart rect.bar:hover { opacity: .7; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .hint { color: var(--muted); font-size: 13px; text-align: center; margin-top: 14px; }
+
+  /* Explanation: split card */
+  .story { display: grid; grid-template-columns: 1.55fr 1fr; border-radius: 20px; overflow: hidden;
+           background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); position: relative; }
+  .story::before { content: ""; position: absolute; top: 0; left: 4%; width: 52%; height: 3px; border-radius: 0 0 3px 3px; background: var(--brand); }
+  .story-main { padding: 36px 40px; }
+  .story-tag { display: flex; gap: 10px; align-items: center; font-size: 13px; font-weight: 700; letter-spacing: .14em; color: var(--muted); }
+  .story h3 { font-size: clamp(22px, 2.6vw, 28px); margin: 14px 0 16px; font-weight: 800; }
+  .story-main p { color: var(--muted); margin: 0 0 10px; }
+  .try { display: flex; gap: 12px; align-items: flex-start; margin-top: 20px; padding: 14px 16px; border-radius: 12px;
+         background: var(--brand-soft); color: var(--text); }
+  .try svg { color: var(--brand); flex: none; margin-top: 2px; }
+  .feedback { margin-top: 20px; color: var(--muted); font-size: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .feedback button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); cursor: pointer; }
+  .feedback button:hover { border-color: var(--brand); color: var(--brand-ink); }
+  .glance { background: radial-gradient(120% 80% at 100% 0%, #3a1520 0%, var(--dark) 55%); color: #f3f1f5; padding: 36px 28px; }
+  .glance .eyebrow { color: #a9a3b0; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 0; }
+  .tile { background: color-mix(in srgb, #fff 6%, transparent); border: 1px solid color-mix(in srgb, #fff 10%, transparent);
+          border-radius: 12px; padding: 12px 14px; min-width: 0; }
+  .tile b { display: block; font-size: 22px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+  .tile b.hot { color: #ff5a6e; }
+  .tile small { color: #a9a3b0; font-size: 12px; }
+  .placeholder { text-align: center; padding: 56px 24px; border: 1.5px dashed var(--line); border-radius: 20px; color: var(--muted); background: var(--card); }
+  .placeholder svg { color: var(--brand); margin-bottom: 8px; }
+  .placeholder.loading { border-style: solid; }
+
+  /* How it works */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .step { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 24px;
+          transition: transform .2s, box-shadow .2s, border-color .2s; overflow: hidden; }
+  .step::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--brand); transform: scaleX(0);
+                  transform-origin: left; transition: transform .25s; }
+  .step:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--brand) 35%, var(--line)); }
+  .step:hover::before { transform: scaleX(1); }
+  .step-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .num { font-size: 44px; font-weight: 800; line-height: 1; color: color-mix(in srgb, var(--brand) 18%, transparent); }
+  .ico-box { width: 44px; height: 44px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; }
+  .step h3 { font-size: 19px; margin: 22px 0 8px; }
+  .step p { color: var(--muted); margin: 0 0 18px; font-size: 15px; }
+  .link { background: none; border: 0; padding: 0; color: var(--brand-ink); font-weight: 600; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+  .link:hover svg { transform: translateX(3px); }
+  .link svg { transition: transform .15s; }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 0; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  /* Modal */
+  dialog { border: 1px solid var(--line); padding: 0; border-radius: 16px; width: min(640px, calc(100% - 32px)); background: var(--card); color: var(--text);
+           box-shadow: 0 30px 80px -20px rgba(0,0,0,.45); }
+  dialog::backdrop { background: rgba(20, 18, 24, .45); }
+  dialog[open] { animation: pop .18s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+  .modal-head { display: flex; align-items: center; gap: 10px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+  .modal-head svg { color: var(--brand); }
+  .modal-head h3 { margin: 0; font-size: 19px; flex: 1; }
+  .modal-head button { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; display: grid; }
+  .modal-head button:hover { background: var(--tint); color: var(--text); }
+  .modal-body { padding: 20px 22px 24px; color: var(--muted); }
+  .modal-body p { margin: 0 0 12px; }
+  .modal-body b { color: var(--text); }
+
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .5s, transform .5s; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } .reveal { opacity: 1; transform: none; } }
+
+  @media (max-width: 860px) {
+    nav { display: none; }
+    header .wrap { justify-content: space-between; }
+    .hero { padding: 40px 0 64px; }
+    .hero .wrap { grid-template-columns: 1fr; }
+    .hero-art { display: none; }
+    .story { grid-template-columns: 1fr; }
+    .story-main { padding: 28px 22px; }
+    .steps { grid-template-columns: 1fr; }
+    section { padding: 56px 0; }
+  }
+  @media (max-width: 480px) {
+    .wrap { padding: 0 16px; }
+    .header-cta { display: none; }
+    .hero .btn { flex: 1; justify-content: center; }
+    .chart-card { padding: 16px 12px 12px; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <div id="demo" class="demo" hidden>Demo data: a made-up day with three planted slowdowns. Run without --demo to see your own laptop.</div>
-  <h1>Why is my laptop slow?</h1>
-  <p class="sub">Click a slow moment on the timeline to see what caused it.</p>
 
-  <div class="bar">
-    <select id="hours">
-      <option value="3">Last 3 hours</option>
-      <option value="24" selected>Last 24 hours</option>
-    </select>
-    <button id="worst" class="primary">Explain the worst slowdown in the last hour</button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></g></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></g></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2z"/></g></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></g></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<header>
+  <div class="wrap">
+    <a class="logo" href="#top"><span class="logo-mark">WS</span><span><b>why slow</b><small>answers, not graphs</small></span></a>
+    <nav>
+      <a href="#timeline">Timeline</a>
+      <a href="#explain">Explanation</a>
+      <a href="#how">How it works</a>
+    </nav>
+    <button class="btn outline header-cta" data-worst>Explain worst</button>
   </div>
+</header>
 
-  <div class="chart">
-    <svg id="chart" viewBox="0 0 1000 220" role="img" aria-label="Slowness timeline"></svg>
-    <div class="legend">
-      <span><span class="dot" style="background:var(--ok)"></span>smooth</span>
-      <span><span class="dot" style="background:var(--warn)"></span>a bit slow</span>
-      <span><span class="dot" style="background:var(--bad)"></span>slow</span>
-      <span><span class="dot" style="background:var(--ram)"></span>RAM used</span>
+<div class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <div id="demo" class="demo" hidden><svg width="16" height="16"><use href="#i-bulb"/></svg>Demo data: a made-up day with three planted slowdowns. Run without --demo to see your own laptop.</div>
+      <div class="badge"><svg width="16" height="16"><use href="#i-lock"/></svg>Runs only on this laptop</div>
+      <h1>Why is my laptop slow?</h1>
+      <p class="lead">Click a slow moment on the timeline and get a plain-English answer: what slowed down, which app caused it, and what to try.</p>
+      <div class="row">
+        <span class="chip"><svg width="18" height="18"><use href="#i-clock"/></svg>
+          <select id="hours" aria-label="Time range">
+            <option value="3">Last 3 hours</option>
+            <option value="24" selected>Last 24 hours</option>
+          </select>
+        </span>
+        <span class="chip"><svg width="18" height="18"><use href="#i-shield"/></svg>Private, 127.0.0.1 only</span>
+      </div>
+      <div class="row">
+        <button class="btn primary" data-worst>Explain the worst slowdown</button>
+        <a class="btn" href="#timeline">View timeline</a>
+        <span class="stat-chip"><span class="ico"><svg width="18" height="18"><use href="#i-pulse"/></svg></span>
+          <span><b id="slow-count">–</b><small><span class="dot" style="color:var(--live)"></span><span id="slow-label">slow moments</span></small></span>
+        </span>
+      </div>
+    </div>
+    <svg class="hero-art" viewBox="0 0 320 240" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="40" y="30" width="240" height="150" rx="14"/>
+        <path d="M14 196h292l-14 18H28z"/>
+        <path d="M70 140l30-24 26 14 30-50 26 34 26-12 42 38" stroke="var(--brand)" opacity=".8"/>
+        <circle cx="156" cy="80" r="8" fill="var(--brand)" stroke="none" opacity=".85"/>
+      </g>
+    </svg>
+  </div>
+  <a class="scroll-down" href="#timeline" aria-label="Scroll to timeline"><svg width="20" height="20"><use href="#i-down"/></svg></a>
+</div>
+
+<section id="timeline">
+  <div class="wrap">
+    <div class="head">
+      <div class="eyebrow">Timeline</div>
+      <h2>Your day at a glance</h2>
+      <p>Each bar is one minute. Taller and redder means it felt slower. Click any bar to find out why.</p>
+    </div>
+    <div class="chart-card">
+      <div class="chart-top">
+        <h3>Slowness score</h3>
+        <div class="seg" role="group" aria-label="Time range">
+          <button data-hours="3">3h</button>
+          <button data-hours="24" class="on">24h</button>
+        </div>
+      </div>
+      <svg id="chart" viewBox="0 0 1000 220" role="img" aria-label="Slowness timeline"></svg>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--ok)"></span>smooth</span>
+        <span><span class="sw" style="background:var(--warn)"></span>a bit slow</span>
+        <span><span class="sw" style="background:var(--bad)"></span>slow</span>
+        <span><span class="sw" style="background:var(--ram)"></span>RAM used</span>
+      </div>
+    </div>
+    <p class="hint">Tip: hover a bar to see CPU and RAM for that minute.</p>
+  </div>
+</section>
+
+<section id="explain" class="tinted">
+  <div class="wrap">
+    <div class="head">
+      <div class="eyebrow">Explanation</div>
+      <h2>What happened, in plain words</h2>
+      <p>The cause, the app behind it, and one thing you can do about it.</p>
+    </div>
+    <div id="result">
+      <div class="placeholder">
+        <svg width="32" height="32"><use href="#i-search"/></svg>
+        <div>Pick a moment on the timeline, or</div>
+        <p><button class="btn primary" data-worst>Explain the worst slowdown in the last hour</button></p>
+      </div>
     </div>
   </div>
+</section>
 
-  <div id="result"></div>
-</main>
+<section id="how">
+  <div class="wrap">
+    <div class="head">
+      <div class="eyebrow">How it works</div>
+      <h2>Three quiet steps</h2>
+      <p>No cloud, no account. Everything is measured and explained on this laptop.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-top"><span class="num">01</span><span class="ico-box"><svg width="22" height="22"><use href="#i-eye"/></svg></span></div>
+        <h3>Watches quietly</h3>
+        <p>A small collector notes CPU, memory, disk and per-app usage every few seconds.</p>
+        <button class="link" data-modal="0">View details <svg width="16" height="16"><use href="#i-arrow"/></svg></button>
+      </div>
+      <div class="step reveal">
+        <div class="step-top"><span class="num">02</span><span class="ico-box"><svg width="22" height="22"><use href="#i-pulse"/></svg></span></div>
+        <h3>Spots slow moments</h3>
+        <p>Each minute gets a slowness score based on how long programs were stuck waiting.</p>
+        <button class="link" data-modal="1">View details <svg width="16" height="16"><use href="#i-arrow"/></svg></button>
+      </div>
+      <div class="step reveal">
+        <div class="step-top"><span class="num">03</span><span class="ico-box"><svg width="22" height="22"><use href="#i-bulb"/></svg></span></div>
+        <h3>Finds the cause</h3>
+        <p>It compares each app with its normal behaviour to name the one that tipped things over.</p>
+        <button class="link" data-modal="2">View details <svg width="16" height="16"><use href="#i-arrow"/></svg></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>why slow · runs locally, your data never leaves this laptop</span>
+    <span>Was an answer wrong? Tell it with 👍 / 👎 so it learns.</span>
+  </div>
+</footer>
+
+<dialog id="modal">
+  <div class="modal-head"><svg width="22" height="22"><use id="modal-icon" href="#i-eye"/></svg><h3 id="modal-title"></h3>
+    <button aria-label="Close" onclick="this.closest('dialog').close()"><svg width="22" height="22"><use href="#i-close"/></svg></button></div>
+  <div class="modal-body" id="modal-body"></div>
+</dialog>
 
 <script>
 const W = 1000, H = 220, TOP = 10, BOTTOM = 190;
 const svg = document.getElementById("chart");
+const hoursSelect = document.getElementById("hours");
 let range = { start: 0, end: 0 };
+let points = [];
 
 function color(score) {
   if (score >= 70) return "var(--bad)";
@@ -82,18 +363,22 @@ function clock(ts) {
 }
 
 async function loadTimeline() {
-  const hours = Number(document.getElementById("hours").value);
-  const points = await (await fetch(`/api/timeline?hours=${hours}`)).json();
+  const hours = Number(hoursSelect.value);
+  points = await (await fetch(`/api/timeline?hours=${hours}`)).json();
   range.end = Date.now() / 1000;
   range.start = range.end - hours * 3600;
   const x = ts => (ts - range.start) / (range.end - range.start) * W;
   const y = pct => BOTTOM - pct / 100 * (BOTTOM - TOP);
   const barW = Math.max(W / (hours * 60), 3);  // at least 3 units wide so short spikes stay visible and clickable
 
-  let html = `<line x1="0" x2="${W}" y1="${BOTTOM}" y2="${BOTTOM}" stroke="var(--line)"/>`;
+  let html = "";
+  for (const pct of [25, 50, 75]) {
+    html += `<line x1="0" x2="${W}" y1="${y(pct)}" y2="${y(pct)}" stroke="var(--line)" stroke-dasharray="3 5"/>`;
+  }
+  html += `<line x1="0" x2="${W}" y1="${BOTTOM}" y2="${BOTTOM}" stroke="var(--line)"/>`;
   for (const p of points) {
     const h = Math.max(p.score, 3) / 100 * (BOTTOM - TOP);
-    html += `<rect x="${x(p.ts)}" y="${BOTTOM - h}" width="${barW}" height="${h}" fill="${color(p.score)}">` +
+    html += `<rect class="bar" x="${x(p.ts)}" y="${BOTTOM - h}" width="${barW}" height="${h}" rx="1" fill="${color(p.score)}">` +
             `<title>${clock(p.ts)}: slowness ${p.score}, CPU ${p.cpu}%, RAM ${p.ram}%</title></rect>`;
   }
   if (points.length) {
@@ -109,6 +394,22 @@ async function loadTimeline() {
     html += `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" fill="var(--muted)">No data yet. Is the collector running?</text>`;
   }
   svg.innerHTML = html;
+
+  // Hero counter: separate slow stretches (score 70+), not slow minutes.
+  let stretches = 0, prev = -Infinity;
+  for (const p of points) {
+    if (p.score < 70) continue;
+    if (p.ts - prev > 120) stretches++;
+    prev = p.ts;
+  }
+  document.getElementById("slow-count").textContent = stretches;
+  document.getElementById("slow-label").textContent = `slowdown${stretches === 1 ? "" : "s"} · last ${hours}h`;
+}
+
+function setHours(h) {
+  hoursSelect.value = h;
+  document.querySelectorAll(".seg button").forEach(b => b.classList.toggle("on", b.dataset.hours === String(h)));
+  loadTimeline();
 }
 
 svg.addEventListener("click", e => {
@@ -116,40 +417,89 @@ svg.addEventListener("click", e => {
   const ts = range.start + (e.clientX - box.left) / box.width * (range.end - range.start);
   explainAt(ts);
 });
-document.getElementById("worst").addEventListener("click", () => explainAt(null));
-document.getElementById("hours").addEventListener("change", loadTimeline);
+document.querySelectorAll("[data-worst]").forEach(b => b.addEventListener("click", () => explainAt(null)));
+hoursSelect.addEventListener("change", () => setHours(hoursSelect.value));
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => setHours(b.dataset.hours)));
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function minutesBetween(a, b) {
+  const m = Math.round((b - a) / 60);
+  return m < 1 ? "< 1 min" : `${m} min`;
+}
+
+const RESOURCE = { memory: "Memory", cpu: "CPU", disk: "Disk", frozen: "Frozen" };
 
 async function explainAt(ts) {
   const out = document.getElementById("result");
-  out.innerHTML = `<div class="card empty">Looking...</div>`;
+  document.getElementById("explain").scrollIntoView();
+  out.innerHTML = `<div class="placeholder loading">Looking…</div>`;
   const e = await (await fetch(ts ? `/api/explain?at=${ts}` : "/api/explain")).json();
-  const card = document.createElement("div");
-  card.className = "card";
-  const h2 = document.createElement("h2");
-  h2.textContent = e.headline;
-  card.append(h2);
-  for (const d of e.details) {
-    const p = document.createElement("p");
-    p.textContent = d;
-    card.append(p);
+
+  if (!e.found) {
+    const box = el("div", "placeholder");
+    box.innerHTML = `<svg width="32" height="32"><use href="#i-shield"/></svg>`;
+    box.append(el("h3", null, e.headline));
+    for (const d of e.details) box.append(el("p", null, d));
+    out.replaceChildren(box);
+    return;
   }
+
+  const peak = points.filter(p => p.ts >= e.start - 60 && p.ts <= e.end).reduce((m, p) => Math.max(m, p.score), 0);
+  const level = peak >= 70 ? ["bad", "Slow"] : peak >= 40 ? ["warn", "A bit slow"] : ["calm", "Slowdown"];
+
+  const story = el("div", "story");
+  const main = el("div", "story-main");
+  const tag = el("div", "story-tag", clock(e.start).toUpperCase());
+  const pill = el("span", `pill ${level[0]}`);
+  pill.append(el("span", "dot"), level[1]);
+  tag.append(pill);
+  main.append(tag, el("h3", null, e.headline));
+  for (const d of e.details) main.append(el("p", null, d));
   if (e.action) {
-    const t = document.createElement("div");
-    t.className = "try";
-    t.textContent = "Try: " + e.action;
-    card.append(t);
+    const t = el("div", "try");
+    t.innerHTML = `<svg width="20" height="20"><use href="#i-bulb"/></svg>`;
+    const span = el("span");
+    span.append(el("b", null, "Try: "), e.action);
+    t.append(span);
+    main.append(t);
   }
-  if (e.found) card.append(feedbackRow(e));
-  out.replaceChildren(card);
+  main.append(feedbackRow(e));
+
+  const glance = el("div", "glance");
+  glance.append(el("div", "eyebrow", "At a glance"));
+  const tiles = el("div", "tiles");
+  const tile = (value, label, hot) => {
+    const t = el("div", "tile");
+    t.append(el("b", hot ? "hot" : null, value), el("small", null, label));
+    tiles.append(t);
+  };
+  tile(minutesBetween(e.start, e.end), "Duration");
+  tile(peak ? Math.round(peak) : "–", "Peak score", peak >= 70);
+  tile(RESOURCE[e.resource] || e.resource || "–", "Bottleneck");
+  tile(clock(e.start), "Started");
+  glance.append(tiles);
+  if (e.culprit) {
+    const c = el("div", "tile");
+    c.style.marginTop = "10px";
+    c.append(el("b", "hot", e.culprit), el("small", null, "Main cause"));
+    glance.append(c);
+  }
+
+  story.append(main, glance);
+  out.replaceChildren(story);
 }
 
 function feedbackRow(e) {
-  const row = document.createElement("div");
-  row.className = "feedback";
+  const row = el("div", "feedback");
   row.append("Was this right?");
   for (const [label, helpful] of [["👍 Yes", true], ["👎 No", false]]) {
-    const b = document.createElement("button");
-    b.textContent = label;
+    const b = el("button", null, label);
     b.onclick = async () => {
       await fetch("/api/feedback", {
         method: "POST",
@@ -162,6 +512,42 @@ function feedbackRow(e) {
   }
   return row;
 }
+
+const DETAILS = [
+  ["Watches quietly", "#i-eye",
+   ["Every few seconds the collector writes down how busy the CPU, memory and disk are, and which apps are using them.",
+    "<b>Where it goes:</b> a small database on this laptop. Nothing is uploaded, and old data is cleaned up automatically."]],
+  ["Spots slow moments", "#i-pulse",
+   ["High usage alone isn't slowness. The score looks at how long programs were stuck waiting for CPU, memory or disk.",
+    "<b>Colours:</b> under 40 feels smooth, 40 to 70 is a bit slow, 70 and up is slow enough to notice."]],
+  ["Finds the cause", "#i-bulb",
+   ["For each slow stretch it compares every app with how much it normally uses, then names the one whose extra usage made the difference.",
+    "<b>Your feedback:</b> 👍 / 👎 on an answer is saved so future explanations get better."]],
+];
+const modal = document.getElementById("modal");
+document.querySelectorAll("[data-modal]").forEach(b => b.addEventListener("click", () => {
+  const [title, icon, paras] = DETAILS[b.dataset.modal];
+  document.getElementById("modal-title").textContent = title;
+  document.getElementById("modal-icon").setAttribute("href", icon);
+  document.getElementById("modal-body").innerHTML = paras.map(p => `<p>${p}</p>`).join("");
+  modal.showModal();
+}));
+modal.addEventListener("click", e => { if (e.target === modal) modal.close(); });
+
+// Highlight the nav link for the section on screen, and fade sections in.
+const links = [...document.querySelectorAll("nav a")];
+const sections = [...document.querySelectorAll("section[id]")];
+function spy() {
+  const line = innerHeight * 0.4;
+  const current = sections.filter(s => s.getBoundingClientRect().top <= line).pop();
+  links.forEach(a => a.classList.toggle("active", !!current && a.hash === "#" + current.id));
+}
+addEventListener("scroll", spy, { passive: true });
+spy();
+const fade = new IntersectionObserver(entries => {
+  for (const en of entries) if (en.isIntersecting) { en.target.classList.add("in"); fade.unobserve(en.target); }
+}, { threshold: 0.15 });
+document.querySelectorAll(".reveal").forEach(r => fade.observe(r));
 
 fetch("/api/info").then(r => r.json()).then(info => { document.getElementById("demo").hidden = !info.demo; });
 loadTimeline();

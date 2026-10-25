@@ -105,10 +105,20 @@ class Sampler:
             temp_c=self.probe.temperature_c(),
             disk_latency_ms=disk_latency_ms(prev_disk, disk) if disk and prev_disk else None,
         )
+        snap.battery_percent, snap.on_charger = self._battery()
         for name, value in self.probe.waiting_signals().items():
             setattr(snap, name, value)
         snap.apps = group_by_app(self._process_samples(elapsed), self.cpu_count, self.config.top_apps_per_resource)
         return snap
+
+    def _battery(self) -> tuple[float | None, bool | None]:
+        try:
+            battery = psutil.sensors_battery()
+        except Exception:
+            return None, None
+        if battery is None:  # a desktop, or the OS doesn't say
+            return None, None
+        return battery.percent, battery.power_plugged
 
     def _cpu_freq(self) -> float | None:
         try:
