@@ -26,17 +26,21 @@ from .storage import Store
 
 def timeline(store: Store, hours: float, now: float) -> list[dict]:
     """One point per minute: the worst slowness score in that minute, plus
-    average CPU and RAM so the page can show what was busy."""
+    average CPU and RAM so the page can show what was busy, and the battery
+    level at the end of the minute (None on a desktop or older data)."""
     snaps = store.snapshots_between(now - hours * 3600, now + 1, with_apps=False)
     minutes: dict[int, dict] = {}
     for s in snaps:
         m = score_snapshot(s)
         key = int(s.ts // 60) * 60
-        point = minutes.setdefault(key, {"ts": key, "score": 0.0, "resource": None, "cpu": 0.0, "ram": 0.0, "n": 0})
+        point = minutes.setdefault(key, {"ts": key, "score": 0.0, "resource": None, "cpu": 0.0, "ram": 0.0,
+                                         "battery": None, "charging": None, "n": 0})
         if m.score > point["score"]:
             point["score"], point["resource"] = m.score, m.resource
         point["cpu"] += s.cpu_percent
         point["ram"] += s.ram_percent
+        if s.battery_percent is not None:
+            point["battery"], point["charging"] = s.battery_percent, s.on_charger
         point["n"] += 1
     for point in minutes.values():
         point["cpu"] = round(point["cpu"] / point["n"], 1)

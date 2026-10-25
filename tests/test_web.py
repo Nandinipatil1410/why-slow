@@ -8,6 +8,8 @@ from whyslow.config import Config
 from whyslow.storage import Store
 from whyslow.web import serve, timeline
 
+from test_storage import snap
+
 
 def test_timeline_has_one_point_per_minute_and_shows_slowdowns(tmp_path):
     config = Config(data_dir=tmp_path)
@@ -17,6 +19,17 @@ def test_timeline_has_one_point_per_minute_and_shows_slowdowns(tmp_path):
     points = timeline(store, hours=24, now=now)
     assert 1430 <= len(points) <= 1441
     assert max(p["score"] for p in points) >= 70  # the demo has real slowdowns
+
+
+def test_timeline_carries_battery_when_recorded():
+    store = Store(":memory:")
+    now = 10_000.0
+    older, latest = snap(now - 120), snap(now - 30)
+    latest.battery_percent, latest.on_charger = 64.0, False
+    store.save([older, latest])
+    points = timeline(store, hours=1, now=now)
+    assert points[0]["battery"] is None  # older data, or a desktop
+    assert (points[-1]["battery"], points[-1]["charging"]) == (64.0, False)
 
 
 def test_api_explain_and_feedback(tmp_path):

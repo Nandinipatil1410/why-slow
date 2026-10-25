@@ -2,10 +2,18 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "whyslow",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "whyslow", "web", "--port", "8799"],
+      "port": 8799,
+      "autoPort": false
+    },
+    {
       "name": "whyslow-demo",
       "runtimeExecutable": ".venv/Scripts/python.exe",
-      "runtimeArgs": ["-m", "whyslow", "web", "--demo", "--port", "8799"],
-      "port": 8799
+      "runtimeArgs": ["-m", "whyslow", "web", "--demo", "--port", "8798"],
+      "port": 8798,
+      "autoPort": false
     }
   ]
 }
